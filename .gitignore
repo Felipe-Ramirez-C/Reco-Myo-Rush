@@ -100,3 +100,6 @@ InitTestScene*.unity*
 
 # Venv python virtual environment
 /Assets/Scripts/myo/venv
+
+# Ignore .vscode folder
+.vscode/
