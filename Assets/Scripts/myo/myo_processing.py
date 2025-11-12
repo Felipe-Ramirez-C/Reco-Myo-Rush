@@ -2,10 +2,15 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import pickle
+import os
 
 if __name__ == "__main__":
     # Importando a base de dados
-    db = pd.read_csv('Assets/Scripts/myo/right_myo.csv')
+    db_name = "close.csv"
+    path = os.path.abspath(os.getcwd())
+    path_abs = path + "/db/" + db_name
+    path_save = path + "/db/" + db_name.split(".")[0] + ".pkl"
+    db = pd.read_csv(path_abs)
 
     db['default'] = 1
 
@@ -38,5 +43,5 @@ if __name__ == "__main__":
     print(y_train.shape, y_test.shape)
 
     # Salvando a base de dados tratada em pickle
-    with open('Assets/Scripts/myo/right_myo.pkl', mode = 'wb') as f:
+    with open(path_save, mode = 'wb') as f:
         pickle.dump([x_train, y_train, x_test, y_test], f)

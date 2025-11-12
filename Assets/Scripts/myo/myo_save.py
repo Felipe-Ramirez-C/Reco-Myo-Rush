@@ -4,6 +4,7 @@ import pandas as pd
 import time
 from pyomyo import Myo, emg_mode
 from collections import deque
+import os
 
 # Worker que coleta os dados e envia pelo Pipe
 def worker(conn):
@@ -64,9 +65,12 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         print("\nParando coleta...")
+        path = os.path.abspath(os.getcwd())
+        path_to_save = path + "/db/close.csv"
         p.terminate()
         p.join()
 
         df = pd.DataFrame(emg_data, columns=["Timestamp"] + [f"CH_{i+1}" for i in range(8)])
-        df.to_csv("Assets/Scripts/myo/center_myo.csv", index=False)
+        os.makedirs(os.path.dirname(path_to_save), exist_ok=True) # Cria o diretório se não existir
+        df.to_csv(path_to_save, index=False)
         print("Salvo com sucesso")

@@ -99,7 +99,7 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 # Venv python virtual environment
-/Assets/Scripts/myo/venv
+/Assets/Scripts/myo/venv/
 
 # Ignore .vscode folder
 .vscode/

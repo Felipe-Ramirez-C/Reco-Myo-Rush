@@ -6,9 +6,11 @@ from pyomyo import Myo, emg_mode
 from collections import deque
 import joblib
 import paho.mqtt.client as mqtt
+import os
 
 # ----- CONFIGURAÇÕES -----
-MODEL_PATH = "Assets/Scripts/myo/best_RF.joblib"
+PATH = os.path.abspath(os.getcwd())
+MODEL_PATH = os.path.join(PATH, "db", "best_RF.joblib")
 MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 MQTT_TOPIC_PREDICTION = "myo/prediction"
