@@ -6,7 +6,7 @@ import os
 
 if __name__ == "__main__":
     # Importando a base de dados
-    db_name = "close.csv"
+    db_name = "positive.csv"
     path = os.path.abspath(os.getcwd())
     path_abs = path + "/db/" + db_name
     path_save = path + "/db/" + db_name.split(".")[0] + ".pkl"

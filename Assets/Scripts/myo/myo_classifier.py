@@ -47,11 +47,11 @@ def load_and_process(file_path, label):
 # Carregar e processar os dois conjuntos de dados
 x_one, y_one = load_and_process(os.path.join(db_path, 'open.pkl'), 1)
 x_two, y_two = load_and_process(os.path.join(db_path, 'close.pkl'), 2)
+x_three, y_three = load_and_process(os.path.join(db_path, 'positive.pkl'), 3)
 
 # Combinar os dados
-X = np.concatenate([x_one, x_two])
-y = np.concatenate([y_one, y_two])
-
+X = np.concatenate([x_one, x_two, x_three])
+y = np.concatenate([y_one, y_two, y_three])
 # Dividir em treino e teste
 x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -63,14 +63,14 @@ model.fit(x_train, y_train)
 y_pred = model.predict(x_test)
 accuracy = accuracy_score(y_test, y_pred)
 print(f"Acurácia: {accuracy:.2f}")
-print(classification_report(y_test, y_pred, target_names=['One (1)', 'Two (2)']))
+print(classification_report(y_test, y_pred, target_names=['One (1)', 'Two (2)', 'Three (3)']))
 
 # Matriz de confusão
-cm = confusion_matrix(y_test, y_pred, labels=[1, 2])
+cm = confusion_matrix(y_test, y_pred, labels=[1, 2, 3])
 plt.figure(figsize=(6, 5))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-            xticklabels=['One', 'Two'],
-            yticklabels=['One', 'Two'])
+            xticklabels=['One', 'Two', 'Three'],
+            yticklabels=['One', 'Two', 'Three'])
 plt.title("Matriz de Confusão")
 plt.xlabel("Predição")
 plt.ylabel("Real")

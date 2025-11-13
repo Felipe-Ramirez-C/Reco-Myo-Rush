@@ -13,12 +13,17 @@ public class CheckCollider : MonoBehaviour
     {
         string tag = other.tag;
 
-        int planoID = (tag == "Grip1") ? 1 : (tag == "Grip2" ? 2 : 0);
-        if (planoID == 0) return;
+        // Agora checando 3 grips
+        int planoID = 
+            (tag == "Grip1") ? 1 :
+            (tag == "Grip2") ? 2 :
+            (tag == "Grip3") ? 3 : 0;
+
+        if (planoID == 0) return; // ignora objetos sem tag de grip
 
         Debug.Log("Plano detectado: " + planoID);
 
-        // Verifica contra o valor do Python (via MQTT)
+        // Verifica se o plano detectado é o mesmo enviado pelo Python
         if (planoID == GripInput.gripAtual)
         {
             Debug.Log("✔ ACERTOU o Grip " + planoID);
@@ -38,13 +43,12 @@ public class CheckCollider : MonoBehaviour
     {
         blocked = true;
 
-        // desativa o spawner
         spawner.StopSpawn();
 
         // empurra todos que estão no cenário
         foreach (GripMove gm in FindObjectsOfType<GripMove>())
         {
-            gm.PushBack(pushBackForce, 0.5f);  // <<< DURAÇÃO ADICIONADA
+            gm.PushBack(pushBackForce, 0.5f);
         }
 
         yield return new WaitForSeconds(penaltyTime);

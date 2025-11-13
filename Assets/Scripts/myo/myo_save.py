@@ -66,7 +66,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\nParando coleta...")
         path = os.path.abspath(os.getcwd())
-        path_to_save = path + "/db/close.csv"
+        path_to_save = path + "/db/positive.csv"
         p.terminate()
         p.join()
 
