@@ -10,6 +10,8 @@ public class GripSpawner : MonoBehaviour
     public float spawnIntervalMax = 5f;
     public float objectSpeed = 8f;
 
+    private bool canSpawn = true;
+
     private void Start()
     {
         StartCoroutine(SpawnObjectLoop());
@@ -19,29 +21,44 @@ public class GripSpawner : MonoBehaviour
     {
         while (true)
         {
-            // Espera um tempo aleatório definido pelo usuário dentro da Unity
-            float spawnDelay = Random.Range(spawnIntervalMin, spawnIntervalMax);
-
-            SpawnCenteredObject();
-
-            yield return new WaitForSeconds(spawnDelay);
+            if (canSpawn)
+            {
+                float spawnDelay = Random.Range(spawnIntervalMin, spawnIntervalMax);
+                SpawnCenteredObject();
+                yield return new WaitForSeconds(spawnDelay);
+            }
+            else
+            {
+                // espera 1 frame e continua verificando
+                yield return null;
+            }
         }
+    }
+
+    public void StopSpawn()
+    {
+        canSpawn = false;
+    }
+
+    public void StartSpawn()
+    {
+        canSpawn = true;
     }
 
     private void SpawnCenteredObject()
     {
         if (objects.Length == 0) return;
 
-        // Escolhe um objeto aleatório do array
         int randomIndex = Random.Range(0, objects.Length);
         GameObject selectedObject = objects[randomIndex];
 
-        // Instancia o objeto na posição do spawner
-        GameObject gameObject = Instantiate(selectedObject, transform.position, Quaternion.identity, objectParent);
-        gameObject.transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+        GameObject obj = Instantiate(selectedObject, transform.position, Quaternion.identity, objectParent);
 
-        // Adiciona o script de movimento, se houver
-        GripMove gripMove = gameObject.AddComponent<GripMove>();
+        // adiciona ou pega o GripMove
+        GripMove gripMove = obj.GetComponent<GripMove>();
+        if (gripMove == null)
+            gripMove = obj.AddComponent<GripMove>();
+
         gripMove.Initialize(objectSpeed);
     }
 }

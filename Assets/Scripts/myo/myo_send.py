@@ -103,7 +103,7 @@ if __name__ == '__main__':
                         features = extract_features(rolling_window).reshape(1, -1)
                         prediction = model.predict(features)[0]
 
-                        label_map = {-1: "Left", 0: "Center", 1: "Right"}
+                        label_map = {1: "Open", 2: "Close"}
                         print(f"Predição: {label_map.get(prediction, prediction)} ({prediction})")
 
                         if mqtt_connected:

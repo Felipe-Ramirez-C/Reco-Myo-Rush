@@ -1,20 +1,41 @@
+using System.Collections;
 using UnityEngine;
 
 public class GripMove : MonoBehaviour
 {
     private float speed;
+    private float originalSpeed;
+    private float duration = 1.0f;
 
     public void Initialize(float moveSpeed)
     {
         speed = moveSpeed;
+        originalSpeed = moveSpeed;
     }
 
-    void Update()
+    /// <summary>
+    /// Empurra o objeto para trás por um tempo limitado.
+    /// </summary>
+    public void PushBack(float force, float duration)
     {
-        // Move o obstaculo na direcao do jogador (eixo Z negativo)
+        StopAllCoroutines();   // impede conflitos se ocorrer pushback múltiplas vezes
+        StartCoroutine(PushBackRoutine(force, duration));
+    }
+
+    private IEnumerator PushBackRoutine(float force, float duration)
+    {
+        speed = -force;               // velocidade reversa
+        yield return new WaitForSeconds(duration);
+
+        speed = originalSpeed;       // volta ao normal
+    }
+
+    private void Update()
+    {
+        // Move o objeto
         transform.Translate(Vector3.back * speed * Time.deltaTime);
 
-        // Destroi o obstaculo ao sair do campo de visao
+        // Destruir ao sair da tela
         if (transform.position.z < -720f)
         {
             Destroy(gameObject);

@@ -8,8 +8,7 @@ public class MqttBrokerBehaviour : MonoBehaviour
 {
     public static MqttBrokerBehaviour instance;
 
-    public int HandState { get; private set; } = 0; // Inicia como 0 (mão aberta)
-
+    public int HandState { get; private set; } = 1;
     private IMqttServer _mqttServer;
 
     private void Awake()
@@ -49,13 +48,24 @@ public class MqttBrokerBehaviour : MonoBehaviour
             })
             .WithApplicationMessageInterceptor(context =>
             {
-                var payload = context.ApplicationMessage.Payload != null ? Encoding.UTF8.GetString(context.ApplicationMessage.Payload) : "vazio";
+                // Converte o payload para string
+                string payload = context.ApplicationMessage.Payload != null
+                    ? Encoding.UTF8.GetString(context.ApplicationMessage.Payload)
+                    : "vazio";
+
                 Debug.Log($"<color=green>Mensagem recebida do cliente '{context.ClientId}': {payload}</color>");
+
+                // Tenta converter o texto recebido para inteiro
                 if (int.TryParse(payload, out int state))
                 {
                     HandState = state;
+
+                    // 🔥 INTEGRAÇÃO COM O JOGO
+                    GripInput.gripAtual = state;
+
+                    Debug.Log($"<color=yellow>Grip atual definido como: {GripInput.gripAtual}</color>");
                 }
-                
+
                 context.AcceptPublish = true;
             })
             .Build();
@@ -63,6 +73,7 @@ public class MqttBrokerBehaviour : MonoBehaviour
         var mqttFactory = new MqttFactory();
         _mqttServer = mqttFactory.CreateMqttServer();
         await _mqttServer.StartAsync(options);
+
         Debug.Log("✅ MQTT Broker started.");
     }
 
