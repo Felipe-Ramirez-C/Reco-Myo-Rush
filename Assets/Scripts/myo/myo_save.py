@@ -8,7 +8,7 @@ import os
 
 # Worker que coleta os dados e envia pelo Pipe
 def worker(conn):
-    m = Myo(mode=emg_mode.PREPROCESSED)
+    m = Myo(mode=emg_mode.FILTERED)
     m.connect()
 
     def add_to_pipe(emg, movement):
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\nParando coleta...")
         path = os.path.abspath(os.getcwd())
-        path_to_save = path + "/db/positive.csv"
+        path_to_save = path + "/db/right.csv"
         p.terminate()
         p.join()
 

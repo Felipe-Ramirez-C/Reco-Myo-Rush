@@ -27,7 +27,7 @@ def extract_features(window):
 
 # ----- PROCESSO DE COLETA DE DADOS -----
 def worker(conn):
-    m = Myo(mode=emg_mode.PREPROCESSED)
+    m = Myo(mode=emg_mode.FILTERED)
     m.connect()
 
     def add_to_pipe(emg, movement):
@@ -103,7 +103,7 @@ if __name__ == '__main__':
                         features = extract_features(rolling_window).reshape(1, -1)
                         prediction = model.predict(features)[0]
 
-                        label_map = {1: "Open", 2: "Close"}
+                        label_map = {0: "Left", 1: "Center", 2: "Right"}
                         print(f"Predição: {label_map.get(prediction, prediction)} ({prediction})")
 
                         if mqtt_connected:

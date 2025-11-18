@@ -1,47 +1,51 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 import pickle
-import os
+from sklearn.model_selection import train_test_split
+from sklearn. preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, MinMaxScaler
+from sklearn.compose import ColumnTransformer
 
-if __name__ == "__main__":
-    # Importando a base de dados
-    db_name = "positive.csv"
-    path = os.path.abspath(os.getcwd())
-    path_abs = path + "/db/" + db_name
-    path_save = path + "/db/" + db_name.split(".")[0] + ".pkl"
-    db = pd.read_csv(path_abs)
+# Arquivos e seus labels
+arquivos = {
+    "db/left.csv": 0,
+    "db/center.csv": 1,
+    "db/right.csv": 2
+}
 
-    db['default'] = 1
+lista = []
 
-    # Visualizando as primeiras linhas da base de dados
-    # print(db.head())
+# Carregando os dados
+for caminho, label in arquivos.items():
+    df = pd.read_csv(caminho)
 
-    # Verificando informações gerais da base de dados
-    # print(db.describe())
+    # Pegando o canal
+    df = df[["CH_1"]]
 
-    # Verificando se existem valores nulos na base de dados
-    # print(db.isnull().sum())
+    # Colocando o label
+    df["label"] = label
 
-    x = db.iloc[:, 1:9]
-    y = db.iloc[:, 9]
-    # print(x.head())
-    # print(y.head())
+    lista.append(df)
 
-    #scalar_standard = StandardScaler()
-    #x_scaled = scalar_standard.fit_transform(x)
+# db concatenada
+db = pd.concat(lista, ignore_index=True)
 
-    # Divisão entre treino e teste
-    # x_train, x_test, y_train, y_test = train_test_split(
-    #     x_scaled, y, test_size=0.25, random_state=0
-    # ) 
-    x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=0.25, random_state=0
-    )
+# Verificando os dados antes da normalização
+print(db)
+print(db.describe())
 
-    print(x_train.shape, x_test.shape)
-    print(y_train.shape, y_test.shape)
+# Divisão entre previsores e classe para normalização
+x = db.iloc[:, 0].values # Apenas o canal x
+y = db.iloc[:, 1].values  # Apenas o label
 
-    # Salvando a base de dados tratada em pickle
-    with open(path_save, mode = 'wb') as f:
-        pickle.dump([x_train, y_train, x_test, y_test], f)
+# print(x)
+# print(y)
+
+# Normalização dos dados
+scaler = MinMaxScaler()
+x_scaled = scaler.fit_transform(x.reshape(-1, 1))
+db["CH_1"] = x_scaled
+
+# Verificando os dados após a normalização
+print(db.describe())
+
+# Salvando a base de dados do canal x normalizada
+db.to_csv("db/db_ch1.csv", index=False)
