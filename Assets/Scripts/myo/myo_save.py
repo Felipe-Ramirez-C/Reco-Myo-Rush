@@ -170,8 +170,10 @@ if __name__ == "__main__":
         )
 
         os.makedirs("db", exist_ok=True)
-        df.to_csv("db/left_full_gestures.csv", index=False)
+        
+        side_path_db = "db/center_full_gestures.csv"
+        df.to_csv(side_path_db, index=False)
 
-        print("\n✔ File saved to: db/left_full_gestures.csv")
+        print(f"\n✔ File saved to: {side_path_db}")
 
         cv2.destroyAllWindows()
