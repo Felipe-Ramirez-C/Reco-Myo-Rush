@@ -171,7 +171,8 @@ if __name__ == "__main__":
 
         os.makedirs("db", exist_ok=True)
         
-        side_path_db = "db/center_full_gestures.csv"
+        side_path_db = "db/right_full_gestures_00.csv"
+
         df.to_csv(side_path_db, index=False)
 
         print(f"\n✔ File saved to: {side_path_db}")
