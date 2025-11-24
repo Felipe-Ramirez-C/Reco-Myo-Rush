@@ -5,7 +5,8 @@ from pyomyo import Myo, emg_mode
 from collections import deque
 import os
 import winsound
-import cv2  # NEW: to display images
+import cv2
+import random  # NEW: for randomizing gesture order
 
 # Gesture list + corresponding images
 gestures = {
@@ -17,6 +18,7 @@ gestures = {
 }
 
 REST_IMAGE = "img/rest.png"
+
 
 # ===========================================================
 # Worker process to handle Myo EMG streaming
@@ -48,7 +50,7 @@ def worker(conn):
 def show_image(image_path, window_name="Gesture", width=500, height=500):
     img = cv2.imread(image_path)
     if img is not None:
-        img = cv2.resize(img, (width, height))   # <-- SET SIZE HERE
+        img = cv2.resize(img, (width, height))
         cv2.imshow(window_name, img)
         cv2.waitKey(1)
     else:
@@ -89,7 +91,9 @@ if __name__ == "__main__":
     GRASP_TIME = 5
     REST_TIME = 3
     AUDIO_ADVANCE = 0.250
-    CYCLES_PER_GESTURE = 5  # 5 cycles per gesture
+    REPEAT_CYCLES = 5   # 5 full cycles of random gestures
+
+    gesture_list = list(gestures.keys())
 
     print("\n===============================")
     print("     PROTOCOL STARTED")
@@ -97,64 +101,58 @@ if __name__ == "__main__":
 
     try:
 
-        for current_gesture, image_path in gestures.items():
+        for cycle in range(REPEAT_CYCLES):
+            print(f"\n======== CYCLE {cycle+1}/{REPEAT_CYCLES} ========\n")
 
-            print("\n=========================================")
-            print(f"👉 NEXT GESTURE: {current_gesture}")
-            print("=========================================\n")
+            # RANDOMIZE ORDER FOR THIS CYCLE
+            random_order = random.sample(gesture_list, len(gesture_list))
+            print("Random order:", random_order)
 
-            cycle = 0
-            state = "REST"
-            state_end_time = time.time() + REST_TIME
+            for current_gesture in random_order:
 
-            while cycle < CYCLES_PER_GESTURE:
+                image_path = gestures[current_gesture]
 
-                now = time.time()
+                # ------------------------
+                # REST PHASE
+                # ------------------------
+                print(f"\n🟦 REST for {REST_TIME}s before next gesture...")
+                show_image(REST_IMAGE)
+                rest_end = time.time() + REST_TIME
 
-                # REST → GRASP or GRASP → REST transition
-                if now >= state_end_time:
+                while time.time() < rest_end:
+                    if parent_conn.poll():
+                        timestamp, emg = parent_conn.recv()
+                        if timestamp - last_save >= storage_interval:
+                            emg_data.append([timestamp] + list(emg) + ["REST"])
+                            last_save = timestamp
 
-                    if state == "REST":
+                # ------------------------
+                # PREPARE GESTURE
+                # ------------------------
+                print(f"\n👉 NEXT GESTURE: {current_gesture}")
+                show_image(image_path)
 
-                        # Show gesture image BEFORE GRASP
-                        show_image(image_path)
+                winsound.Beep(1000, 250)
+                print("👉 Starting in 250 ms...")
+                time.sleep(AUDIO_ADVANCE)
 
-                        # Audio cue 250 ms before starting GRASP
-                        winsound.Beep(1000, 250)
-                        print("👉 Starting grasp in 250 ms...")
-                        time.sleep(AUDIO_ADVANCE)
+                # ------------------------
+                # GRASP PHASE
+                # ------------------------
+                print(f"✊ PERFORM {current_gesture} for {GRASP_TIME}s")
+                grasp_end = time.time() + GRASP_TIME
 
-                        state = current_gesture
-                        print(f"✊ {current_gesture} — Hold for {GRASP_TIME} seconds!")
+                while time.time() < grasp_end:
+                    if parent_conn.poll():
+                        timestamp, emg = parent_conn.recv()
+                        if timestamp - last_save >= storage_interval:
+                            emg_data.append([timestamp] + list(emg) + [current_gesture])
+                            last_save = timestamp
 
-                        now = time.time()
-                        state_end_time = now + GRASP_TIME
+                winsound.Beep(800, 200)
+                print("🔔 GRASP END")
 
-                    else:
-                        # End of grasp
-                        winsound.Beep(800, 200)
-                        print("🔔 End of grasp!")
-
-                        state = "REST"
-                        cycle += 1
-                        print(f"🟦 Resting for {REST_TIME}s...  ({cycle}/{CYCLES_PER_GESTURE})")
-
-                        # Show REST image
-                        show_image(REST_IMAGE)
-
-                        now = time.time()
-                        state_end_time = now + REST_TIME
-
-                # Receive EMG and store
-                if parent_conn.poll():
-                    timestamp, emg = parent_conn.recv()
-                    if timestamp - last_save >= storage_interval:
-                        emg_data.append([timestamp] + list(emg) + [state])
-                        last_save = timestamp
-
-            print("\n✔ COMPLETED gesture:", current_gesture)
-
-        print("\n🎉 ALL GESTURES COMPLETED SUCCESSFULLY!")
+        print("\n🎉 ALL CYCLES COMPLETED SUCCESSFULLY!")
 
     except KeyboardInterrupt:
         print("\nCollection interrupted by user.")
@@ -171,10 +169,9 @@ if __name__ == "__main__":
 
         os.makedirs("db", exist_ok=True)
         
-        side_path_db = "db/right_full_gestures_00.csv"
+        out_path = "db/right_full_gestures_random_00.csv"
+        df.to_csv(out_path, index=False)
 
-        df.to_csv(side_path_db, index=False)
-
-        print(f"\n✔ File saved to: {side_path_db}")
+        print(f"\n✔ File saved to: {out_path}")
 
         cv2.destroyAllWindows()

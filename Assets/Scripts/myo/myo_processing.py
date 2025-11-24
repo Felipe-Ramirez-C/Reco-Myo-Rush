@@ -1,51 +1,112 @@
+# myo_processing.py
+import os
+import numpy as np
 import pandas as pd
+from collections import Counter
 import pickle
-from sklearn.model_selection import train_test_split
-from sklearn. preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, MinMaxScaler
-from sklearn.compose import ColumnTransformer
 
-# Arquivos e seus labels
-arquivos = {
-    "db/left.csv": 0,
-    "db/center.csv": 1,
-    "db/right.csv": 2
+# -------------------------------------------------------------------
+# Paths
+# -------------------------------------------------------------------
+DATASETS = {
+    "LEFT":   "db/left_full_gestures_00.csv",
+    "CENTER": "db/center_full_gestures_00.csv",
+    "RIGHT":  "db/right_full_gestures_00.csv"
 }
 
-lista = []
+gesture_map = {
+    "POWER": 0,
+    "LATERAL": 1,
+    "POINTER": 2,
+    "OPEN": 3,
+    "TRIPOD": 4
+}
 
-# Carregando os dados
-for caminho, label in arquivos.items():
-    df = pd.read_csv(caminho)
+position_map = {
+    "LEFT": 0,
+    "CENTER": 1,
+    "RIGHT": 2
+}
 
-    # Pegando o canal
-    df = df[["CH_1"]]
+channels = [f"CH_{i}" for i in range(1, 9)]
 
-    # Colocando o label
-    df["label"] = label
 
-    lista.append(df)
+# -------------------------------------------------------------------
+# Feature extraction
+# -------------------------------------------------------------------
+def rms(x): return np.sqrt(np.mean(x**2))
+def mav(x): return np.mean(np.abs(x))
+def wl(x): return np.sum(np.abs(np.diff(x)))
+def zc(x, thresh=5): return np.sum(((x[:-1] * x[1:]) < 0) & (np.abs(x[:-1]-x[1:])>=thresh))
+def ssc(x, thresh=5):
+    d = np.diff(x)
+    return np.sum(((d[:-1] * d[1:]) < 0) & (np.abs(d[:-1]-d[1:]) >= thresh))
 
-# db concatenada
-db = pd.concat(lista, ignore_index=True)
+def extract_features_window(win):
+    feats = []
+    for c in range(win.shape[1]):
+        x = win[:, c]
+        feats += [
+            rms(x), mav(x), np.std(x), np.var(x),
+            np.max(x), np.min(x), np.ptp(x),
+            wl(x), zc(x), ssc(x)
+        ]
+    return np.array(feats)
 
-# Verificando os dados antes da normalização
-print(db)
-print(db.describe())
 
-# Divisão entre previsores e classe para normalização
-x = db.iloc[:, 0].values # Apenas o canal x
-y = db.iloc[:, 1].values  # Apenas o label
+# -------------------------------------------------------------------
+# Processing function
+# -------------------------------------------------------------------
+X_gesture, y_gesture = [], []
+X_position, y_position = [], []
 
-# print(x)
-# print(y)
+for pos_name, filepath in DATASETS.items():
 
-# Normalização dos dados
-scaler = MinMaxScaler()
-x_scaled = scaler.fit_transform(x.reshape(-1, 1))
-db["CH_1"] = x_scaled
+    print(f"Loading: {filepath}")
+    df = pd.read_csv(filepath)
 
-# Verificando os dados após a normalização
-print(db.describe())
+    # remove rest periods
+    df = df[df["State"] != "REST"].reset_index(drop=True)
 
-# Salvando a base de dados do canal x normalizada
-db.to_csv("db/db_ch1.csv", index=False)
+    g_label = df["State"].map(gesture_map).values
+    p_label = position_map[pos_name]
+
+    ts = df["Timestamp"].values
+    sr = 1 / np.median(np.diff(ts))
+    WINDOW_SIZE = int(sr * 0.30)
+    STEP = WINDOW_SIZE // 2
+
+    data = df[channels].values
+
+    for start in range(0, len(df)-WINDOW_SIZE, STEP):
+        win = data[start:start+WINDOW_SIZE]
+        win_labels = g_label[start:start+WINDOW_SIZE]
+        maj = Counter(win_labels).most_common(1)[0][0]
+
+        feats = extract_features_window(win)
+
+        X_gesture.append(feats)
+        y_gesture.append(maj)
+
+        X_position.append(feats)
+        y_position.append(p_label)
+
+
+# Convert to numpy
+X_gesture = np.array(X_gesture)
+y_gesture = np.array(y_gesture)
+X_position = np.array(X_position)
+y_position = np.array(y_position)
+
+print("Final gesture dataset:", X_gesture.shape, y_gesture.shape)
+print("Final position dataset:", X_position.shape, y_position.shape)
+
+# -------------------------------------------------------------------
+# SAVE TO .pkl
+# -------------------------------------------------------------------
+os.makedirs("processed", exist_ok=True)
+
+with open("processed/processed_data.pkl", "wb") as f:
+    pickle.dump((X_gesture, y_gesture, X_position, y_position), f)
+
+print("\n✔ Saved processed_data.pkl")

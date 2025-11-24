@@ -1,84 +1,63 @@
+# train_models.py
 import pickle
-import numpy as np
 import joblib
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.ensemble import RandomForestClassifier
-import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import seaborn as sns
-import os
+import matplotlib.pyplot as plt
 
-# Configurações
-WINDOW_SIZE = 15  # mesmo valor usado no script de inferência
+gesture_names = ["POWER", "LATERAL", "POINTER", "OPEN", "TRIPOD"]
+position_names = ["LEFT", "CENTER", "RIGHT"]
 
-# Caminhos
-path = os.path.abspath(os.getcwd())
-db_path = os.path.join(path, "db")
+# ---------------------------------------------------------
+# Load processed data
+# ---------------------------------------------------------
+with open("processed/processed_data.pkl", "rb") as f:
+    Xg, yg, Xp, yp = pickle.load(f)
 
-# Garante que a pasta db existe
-os.makedirs(db_path, exist_ok=True)
+# ---------------------------------------------------------
+# Train gesture classifier
+# ---------------------------------------------------------
+xtr, xte, ytr, yte = train_test_split(Xg, yg, test_size=0.2, stratify=yg)
 
-# Função de extração de features
-def extract_features(window):
-    window = np.array(window)
-    mean = np.mean(window, axis=0)
-    std = np.std(window, axis=0)
-    maximum = np.max(window, axis=0)
-    minimum = np.min(window, axis=0)
-    return np.concatenate([mean, std, maximum, minimum])
+clf_g = RandomForestClassifier(n_estimators=300)
+clf_g.fit(xtr, ytr)
+ypred = clf_g.predict(xte)
 
-# Função para carregar e processar dados
-def load_and_process(file_path, label):
-    with open(file_path, 'rb') as f:
-        x_train, y_train, x_test, y_test = pickle.load(f)
+print("\nGESTURE CLASSIFICATION:")
+print(classification_report(yte, ypred, target_names=gesture_names))
 
-    x_all = np.concatenate((x_train, x_test), axis=0)
-    y_all = np.full(len(x_all), label)
-
-    features, labels = [], []
-    for i in range(len(x_all) - WINDOW_SIZE):
-        window = x_all[i:i + WINDOW_SIZE]
-        feat = extract_features(window)
-        features.append(feat)
-        labels.append(label)
-
-    return np.array(features), np.array(labels)
-
-# Carregar e processar os dois conjuntos de dados
-x_one, y_one = load_and_process(os.path.join(db_path, 'left.pkl'), 0)
-x_two, y_two = load_and_process(os.path.join(db_path, 'center.pkl'), 1)
-x_three, y_three = load_and_process(os.path.join(db_path, 'right.pkl'), 2)
-
-# Combinar os dados
-X = np.concatenate([x_one, x_two, x_three])
-y = np.concatenate([y_one, y_two, y_three])
-# Dividir em treino e teste
-x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Treinar o modelo
-model = RandomForestClassifier(random_state=42)
-model.fit(x_train, y_train)
-
-# Avaliação
-y_pred = model.predict(x_test)
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Acurácia: {accuracy:.2f}")
-print(classification_report(y_test, y_pred, target_names=['Left (0)', 'Center (1)', 'Right (2)']))
-
-# Matriz de confusão
-cm = confusion_matrix(y_test, y_pred, labels=[0, 1, 2])
-plt.figure(figsize=(6, 5))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-            xticklabels=['Left', 'Center', 'Right'],
-            yticklabels=['Left', 'Center', 'Right'])
-plt.title("Matriz de Confusão")
-plt.xlabel("Predição")
-plt.ylabel("Real")
-plt.tight_layout()
+cm = confusion_matrix(yte, ypred)
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=gesture_names, yticklabels=gesture_names)
+plt.title("Gesture Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("True")
 plt.show()
 
-# Salvar modelo treinado
-model_path = os.path.join(db_path, 'best_RF.joblib')
-joblib.dump(model, model_path)
+joblib.dump(clf_g, "gesture_classifier.joblib")
 
-print(f"✅ Modelo salvo em: {model_path}")
+
+# ---------------------------------------------------------
+# Train position classifier
+# ---------------------------------------------------------
+xtr, xte, ytr, yte = train_test_split(Xp, yp, test_size=0.2, stratify=yp)
+
+clf_p = RandomForestClassifier(n_estimators=300)
+clf_p.fit(xtr, ytr)
+ypred = clf_p.predict(xte)
+
+print("\nPOSITION CLASSIFICATION:")
+print(classification_report(yte, ypred, target_names=position_names))
+
+cm = confusion_matrix(yte, ypred)
+sns.heatmap(cm, annot=True, fmt="d", cmap="Greens", xticklabels=position_names, yticklabels=position_names)
+plt.title("Position Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("True")
+plt.show()
+
+joblib.dump(clf_p, "position_classifier.joblib")
+
+print("\n✔ Models saved!")

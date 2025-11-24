@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ======= SELECT YOUR CSV FILE HERE ========
-csv_file = "db/right_full_gestures_00.csv"
+csv_file = "db/right_full_gestures_random_00.csv"
 # ==========================================
 
 # Load the file
